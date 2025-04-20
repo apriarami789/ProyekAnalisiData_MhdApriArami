@@ -17,9 +17,9 @@ Dashboard ini menyediakan fitur berikut:
 Ikuti langkah-langkah berikut untuk menjalankan dashboard:
 1. **Pre-requisite Setup Enviroment**
     a. conda
-        ```bash
-        conda create --name name_env python=3.11
-        conda activate name_env
+    ```bash
+    conda create --name name_env python=3.11
+    conda activate name_env
 
     b. pip
     ```bash
