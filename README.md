@@ -17,34 +17,29 @@ Dashboard ini menyediakan fitur berikut:
 Ikuti langkah-langkah berikut untuk menjalankan dashboard:
 1. **Pre-requisite Setup Enviroment**
     a. conda
-    ```bash
-    conda create --name name_env python=3.11
-    conda activate name_env
-    ```bash
-    
+        ```bash
+        conda create --name name_env python=3.11
+        conda activate name_env
+
     b. pip
     ```bash
-    py -m venv name_folder
-    name_folder\Scripts\activate
-    ```bash
+        py -m venv name_folder
+        name_folder\Scripts\activate
 
 2. **Clone Repository**
    ```bash
    git clone https://github.com/apriarami789/ProyekAnalisiData_MhdApriArami.git
    cd ProyekAnalisiData_MhdApriArami
-   ```bash
 
 3. **Install Dependensi**
     ```bash
     pip install -r requirements.txt 
-    ```bash
 
 4. **Jalankan Dashboard**
     ```bash
     streamlit run dashboard/dashboard.py
-    ```bash
 
-    setelah prompt di atas di running, nanti akan muncul window baru yang akan memperlihatkan dashboard
+setelah prompt di atas di running, nanti akan muncul window baru yang akan memperlihatkan dashboard
 
 ### Catatan
 Pastikan file station_data_days.xlsx berada di folder dashboard/ agar dashboard dapat memuat data dengan benar.
