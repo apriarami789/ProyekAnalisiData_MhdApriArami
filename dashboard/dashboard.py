@@ -3,13 +3,94 @@ import pandas as pd
 import plotly.express as px
 import seaborn as sns
 import matplotlib.pyplot as plt
+from statsmodels.tsa.seasonal import seasonal_decompose
 
+# Fungsi dekomposisi, memishakan trend, musiman, dan residual
+def decompose(series,period=7):
+  data = series
+  df_decomp = pd.DataFrame()
+  decomp = seasonal_decompose(data, model='additive', period=period)  # disarankan periode sesuai dengan yang terlihat di graph line
+  df_decomp['original'] = data
+  df_decomp['trend'] = decomp.trend
+  df_decomp['seasonal'] = decomp.seasonal
+  df_decomp['residual'] = decomp.resid
+
+  return df_decomp
+
+def categorize_level_aqi(skor_aci):
+    if skor_aci < 2:
+        return 'Baik'
+    elif skor_aci < 3:
+        return 'Moderate'
+    elif skor_aci < 4:
+        return 'Tidak Sehat untuk Grup Senitive'
+    elif skor_aci < 5:
+        return 'Tidak Sehat'
+    elif skor_aci < 6:
+        return 'Sangat Tidak Sehat'
+    else :
+        return 'Berbahaya'
+
+    
 st.set_page_config(page_title="Dashboard Kualitas Udara & Cuaca", layout="wide")
 
 # Halaman Utama
 st.title("🌤️ Dashboard Kualitas Udara & Cuaca Semua Statiun")
 df_all = pd.read_excel('station_data_days.xlsx', sheet_name=None, parse_dates=True)
 station_list = list(df_all.keys())
+
+# Peringkat Stasiun berdasarkakan Level AQI
+st.subheader("🏆 Peringkat Stasiun Berdasarkan Level AQI")
+st.write("Peringkat stasiun berdasarkan level AQI harian dari yang terendah ke tertinggi.")
+st.write("Level AQI:")
+st.write("Level 1. Baik (0-50)")
+st.write("Level 2. Moderate (51-100)")
+st.write("Level 3. TTidak Sehat untuk Grup Senitive (101-150)")
+st.write("Level 4. Tidak Sehat (151-200)")
+st.write("Level 5. Sangat Tidak Sehat (201-300)")
+st.write("Level 6. Berbahaya (301-500)")
+
+ACI_skor = []
+ACI_station = []
+pm25_mean = []
+
+for i,station in enumerate(df_all.keys()):
+  pm25_skor = pd.DataFrame()
+  data = df_all[station]
+  data_pm25 = data[data['AQI_category_max'] == 'PM2.5']
+  pm25_mean.append(data_pm25['PM2.5'].mean())
+
+  # membuat dataframe perhitungan
+  pm25_skor['pm25_nDays'] = data_pm25.groupby('AQI_category')['PM2.5'].count()
+  pm25_skor['Indeks'] = [1,2,3,4,5,6]
+
+  # Average Category Index (ACI)
+  aci = pm25_skor['Indeks'] * pm25_skor['pm25_nDays']
+  ACI = (aci.sum()) / pm25_skor['pm25_nDays'].sum()
+  ACI_skor.append(ACI)
+  ACI_station.append(station)
+
+# Skor ACI dan Rankingnya
+aci_skor = pd.Series(ACI_skor,index=ACI_station,name='Score')
+
+df_aci_skor = pd.DataFrame({'ACI':aci_skor,
+                            'PM2.5_mean':pm25_mean,
+                            'Kategori': aci_skor.apply(lambda x : categorize_level_aqi(x)),
+                            'Rank':aci_skor.rank(ascending=False)})
+
+# menampilkan data frame Score Level AQI
+st.dataframe(df_aci_skor.sort_values('ACI',ascending=False))
+
+col01,col02 = st.columns(2)
+with col01:
+    MEAN_conc = aci_skor.mean()
+    st.metric("Rata-Rata Level AQI", value=round(MEAN_conc,2))
+    st.write(f'Kategori {categorize_level_aqi(MEAN_conc)}')
+
+fig_bar_01, ax_bar_01 = plt.subplots(1,1,figsize=(15,5))
+df_aci_skor.sort_values('ACI',ascending=True).plot(kind='barh',y='ACI',legend=False,ax=ax_bar_01)
+ax_bar_01.bar_label(ax_bar_01.containers[0], fontsize=10)
+st.pyplot(fig_bar_01)
 
 select_station = st.selectbox("Pilih Stasiun", df_all.keys(), index=0)
 
@@ -39,23 +120,45 @@ df['AQI_category'] = df['AQI_category'].astype('category')
 for cat1,cat2 in zip(label_cat_1,label_cat_2):
     if cat1 not in df['AQI_category_max'].cat.categories:
         df['AQI_category_max'] = df['AQI_category_max'].cat.add_categories([cat1])
-    if cat2 not in df['AQI_category'].cat.categories:
+    elif cat2 not in df['AQI_category'].cat.categories:
         df['AQI_category'] = df['AQI_category'].cat.add_categories([cat2])
-    
+    else:
+        break
 
 # Tampilkan statistik deskriptif
 st.subheader("📊 Statistik Deskriptif")
 st.dataframe(df.describe().T)
 
+# Distribusi parameter IAQI yang mempengaruhi AQI
+st.subheader("📊 Distribusi Parameter IAQI")
+fig_aqi01,ax_aqi01 = plt.subplots(figsize=(10, 5))
+sns.countplot(data=df,x='AQI_category_max',order=label_cat_1,ax=ax_aqi01)
+ax_aqi01.bar_label(ax_aqi01.containers[0], fontsize=10)
+ax_aqi01.set_title("Distribusi parameter IAQI")
+ax_aqi01.set_xlabel("Parameter IAQI")
+ax_aqi01.set_ylabel("Jumlah Hari")
+st.pyplot(fig_aqi01)
+
+max_features = df['AQI_category_max'].value_counts().idxmax()
+max_count = df['AQI_category_max'].value_counts().max()
+st.write(f"{max_features} menjadi parameter IAQI yang paling banyak mempengaruhi " \
+f"nilai AQI harian sebanyak {max_count} hari di stasiun {select_station}.")
+
+# Mapping kategori AQI ke label
 numeric_cols = df.select_dtypes(include='number').columns.tolist()
 obj_cols = df.select_dtypes(include='object').columns.tolist()
 categorical_cols = df.select_dtypes(include='category').columns.tolist()
 
 # Heatmap Korelasi
+trend_df = pd.DataFrame()
+for feature in numeric_cols:
+    trend = decompose(df[feature],period=365)
+    trend_df[feature] = trend['trend']
+
 st.subheader("🔍 Korelasi Antar Parameter")
-corr = df[numeric_cols].corr()
+corr = trend_df.corr()
 fig_corr, ax_corr = plt.subplots(figsize=(10, 8))
-sns.heatmap(corr, annot=True, vmin=-1, vmax=1, ax=ax_corr)
+sns.heatmap(corr, annot=True, cmap='coolwarm', vmin=-1, vmax=1, ax=ax_corr)
 st.pyplot(fig_corr)
 
 # Pilih parameter untuk diplot
@@ -88,8 +191,20 @@ if selected_params in numeric_cols:
         Mean_conc = df_filtered[selected_params].mean()
         st.metric("Mean Value", value=round(Mean_conc,2))
 
+    trend_df_filtered = pd.DataFrame()
+    for feature in numeric_cols:
+        trend = decompose(df_filtered[feature],period=365)
+        trend_df_filtered[feature] = trend['trend']
+    
+    # Observasi Data Plot
     fig_ts = px.line(df_filtered, x=df_filtered.index, y=selected_params, title=f"Time Series {selected_params}")
     st.plotly_chart(fig_ts, use_container_width=True)
+
+    # Trend Data Plot
+    fig_trend = px.line(trend_df_filtered, x=trend_df_filtered.index, y=selected_params, title=f"Trend {selected_params}")
+    fig_trend.update_traces(line=dict(width=2))
+    fig_trend.update_layout(yaxis_title="Trend")
+    st.plotly_chart(fig_trend, use_container_width=True)
 
     # Histogram Plot
     st.subheader(f"📊 Histogram {selected_params}")
@@ -100,7 +215,7 @@ if selected_params in numeric_cols:
 
     # Korelasi Dengan Feature Lain
     st.subheader("🔍 Korelasi Antar Parameter")
-    corr = df_filtered[numeric_cols].corr()
+    corr = trend_df_filtered.corr()
     fig_corr_param, ax_corr_param = plt.subplots()
     sns.barplot(corr[selected_params], ax=ax_corr_param)
     ax_corr_param.set_ylim(-1, 1)
