@@ -144,6 +144,22 @@ max_count = df['AQI_category_max'].value_counts().max()
 st.write(f"{max_features} menjadi parameter IAQI yang paling banyak mempengaruhi " \
 f"nilai AQI harian sebanyak {max_count} hari di stasiun {select_station}.")
 
+# Distribusi Level AQI untuk kategori PM2.5
+data = df_all[station].copy()
+# data_pm25 merupakan dataframe yang hanya berisi data dari pengelompokam PM2.5 pada kolom AQI_category_max
+data_pm25 = data[data['AQI_category_max'] == 'PM2.5']
+mean_pm25 = data_pm25['PM2.5'].mean()
+
+# visualisasi distribusinya
+st.subheader("📊 Distribusi Level AQI Kategori PM2.5")
+fig_aqi02,ax_aqi02 = plt.subplots(figsize=(10,5))
+sns.countplot(data=data_pm25,x='AQI_category',order=label_cat_2,ax=ax_aqi02)
+ax_aqi02.bar_label(ax_aqi02.containers[0], fontsize=10)
+ax_aqi02.set_title(f'Distribusi Level AQI pada kategori PM2.5 di {station}')
+ax_aqi02.set_xlabel('Konsentrasi yang menentukan nilai AQI')
+ax_aqi02.set_ylabel('Jumlah hari')
+st.pyplot(fig_aqi02)
+
 # Mapping kategori AQI ke label
 numeric_cols = df.select_dtypes(include='number').columns.tolist()
 obj_cols = df.select_dtypes(include='object').columns.tolist()
