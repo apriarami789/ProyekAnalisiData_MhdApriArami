@@ -37,7 +37,7 @@ st.set_page_config(page_title="Dashboard Kualitas Udara & Cuaca", layout="wide")
 # Halaman Utama
 st.title("🌤️ Dashboard Kualitas Udara & Cuaca Semua Statiun")
 
-@st.cache
+@st.cache_data
 def load_data(path):
     # Read the Excel file from the URL
     data = pd.read_excel(path,sheet_name=None, parse_dates=True, engine='openpyxl')
