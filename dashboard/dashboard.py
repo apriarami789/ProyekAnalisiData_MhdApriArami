@@ -43,7 +43,7 @@ def load_data(path):
     data = pd.read_excel(path,sheet_name=None, parse_dates=True, engine='openpyxl')
     return data
 
-df_all = load_data('station_data_days.xlsx')
+df_all = load_data('dashboard/station_data_days.xlsx')
 station_list = list(df_all.keys())
 
 # Peringkat Stasiun berdasarkakan Level AQI
