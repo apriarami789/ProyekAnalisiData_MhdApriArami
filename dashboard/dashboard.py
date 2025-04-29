@@ -36,7 +36,14 @@ st.set_page_config(page_title="Dashboard Kualitas Udara & Cuaca", layout="wide")
 
 # Halaman Utama
 st.title("🌤️ Dashboard Kualitas Udara & Cuaca Semua Statiun")
-df_all = pd.read_excel('station_data_days.xlsx', sheet_name=None, parse_dates=True, engine='openpyxl')
+
+@st.cache
+def load_data(path):
+    # Read the Excel file from the URL
+    data = pd.read_excel(path,sheet_name=None, parse_dates=True, engine='openpyxl')
+    return data
+
+df_all = load_data('station_data_days.xlsx')
 station_list = list(df_all.keys())
 
 # Peringkat Stasiun berdasarkakan Level AQI
